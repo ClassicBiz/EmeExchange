@@ -1,21 +1,48 @@
-local basalt = require("/GUI/basalt") -- Load Basalt library
--- Peripherals setup
-local emerald = 19
-local dispenser = 11
-local cash = 18
-local emeraldChest = peripheral.wrap("minecraft:chest_"..emerald) -- Adjust the peripheral name
-local emeraldDispenser = peripheral.wrap("minecraft:dispenser_"..dispenser)
-local cashChest = peripheral.wrap("minecraft:chest_"..cash)
+local basalt = require("/GUI/basalt")
 
--- Payment values table
+-- Peripherals setup
+local function loadPeripherals()
+    local file = fs.open("peripherals.dat", "r")
+    if not file then
+        print("Error: Unable to load peripherals data.")
+        return nil
+    end
+    local peripheralsData = file.readAll() 
+    file.close() 
+    local peripheralsTable = textutils.unserialize(peripheralsData)
+    return peripheralsTable
+end
+
+local peripheralsTable = loadPeripherals()
+if not peripheralsTable then
+    return 
+end
+
+-- Loop through the peripherals table and wrap the peripherals dynamically
+for _, peripheralData in ipairs(peripheralsTable) do
+    local peripheralType = peripheralData.type
+    local peripheralName = peripheralData.name
+    local label = peripheralData.label
+
+    -- Check for the peripheral type and wrap accordingly
+    if peripheralType == "minecraft:chest" then
+        if label == "emerald" then
+            emeraldChest = peripheral.wrap(peripheralName)
+        elseif label == "cash" then
+            cashChest = peripheral.wrap(peripheralName)
+        end
+    elseif peripheralType == "minecraft:dispenser" and label == "dispenser" then
+        emeraldDispenser = peripheral.wrap(peripheralName)
+    end
+end
+
 local emeraldValue = 10
--- Termination-safe event monitoring
 local function terminateHandler()
     while true do
-        local event = os.pullEventRaw() -- Pull raw events to detect terminate
+        local event = os.pullEventRaw()
         if event == "terminate" then
             print("Termination detected. Rebooting...")
-            os.reboot() -- Reboot the system
+            os.reboot()
         end
     end
 end
@@ -32,9 +59,9 @@ end
 local function roundNumber(num)
     local intPart, decimalPart = math.modf(num)
     if decimalPart >= 0.5 then
-        return math.ceil(num)  -- Round up
+        return math.ceil(num)
     else
-        return math.floor(num)  -- Round down
+        return math.floor(num)
     end
 end
 
@@ -195,24 +222,14 @@ local function moveEmeraldsToDispenser(emeraldsToExchange)
     for slot, item in pairs(emeraldChest.list()) do
         if item.name == "minecraft:emerald" then
             local emeraldsInSlot = item.count
-
-            -- Calculate how many emeralds to move from this slot
             local emeraldsToMove = math.min(emeraldsInSlot, remainingEmeralds)
-            
-            -- Move emeralds from this slot to the dispenser
             emeraldChest.pushItems(peripheral.getName(emeraldDispenser), slot, emeraldsToMove)
-
-            -- Decrease the remaining emeralds needed
             remainingEmeralds = remainingEmeralds - emeraldsToMove
-
-            -- If we've moved all the required emeralds, exit the loop
             if remainingEmeralds <= 0 then
                 break
             end
         end
     end
-
-    -- Return the number of emeralds successfully moved
     return emeraldsToExchange - remainingEmeralds
 end
 
@@ -245,8 +262,6 @@ local function handleExchange(emeraldsToExchange, totalCost, currentEmeralds)
         else
             outputTextBox:editLine(4, "Only " .. emeraldsMoved .. " emerald(s) could be exchanged.")
         end
-
-        -- Update emerald count display
         local totalEmeralds = checkEmeraldChest()
     	emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
         emeraldInput:setValue("")
