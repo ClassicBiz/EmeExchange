@@ -30,21 +30,18 @@ function installBasalt()
 end
 
 function moveBasaltToGUI(dir)
-    local basaltFile = "basalt.lua"  -- The file we want to move
-    local targetDir = dir .. "/basalt.lua"  -- Full target path including the filename
+    local basaltFile = "basalt.lua"
+    local targetDir = dir .. "/basalt.lua" 
 
-    -- Ensure the target directory exists
     if not fs.exists(dir) then
         fs.makeDir(dir)  -- Create the directory if it doesn't exist
         print("Created directory: " .. dir)
     end
 
-    -- Check if the basalt file exists before moving it
     if fs.exists(basaltFile) then
         local success, err = pcall(function() 
-            fs.move(basaltFile, targetDir)  -- Move the file into the target directory
+            fs.move(basaltFile, targetDir)
         end)
-
         -- Handle potential errors
         if success then
             print("Moved Basalt UI into /GUI/")
@@ -58,8 +55,6 @@ end
 
 function scanPeripherals()
     local peripheralNames = peripheral.getNames()
-    local peripheralsTable = {} -- Store peripherals
-
     local labels = {
         ["minecraft:chest"] = {"emerald", "cash"},
         ["minecraft:dispenser"] = {"dispenser"}
@@ -80,17 +75,13 @@ function scanPeripherals()
             if label then
                 -- Extract only the number from the peripheral name
                 local number = tonumber(name:match("_(%d+)$")) or name
-                
-                -- Store peripheral data
                 table.insert(peripheralsTable, {
                     type = peripheralType,
-                    name = number, -- Store number instead of full name
+                    name = number,
                     label = label
                 })
 
                 print("Assigned " .. peripheralType .. " " .. name .. " as " .. label)
-
-                -- Increment label index
                 labelIndex[peripheralType] = currentLabelIndex + 1
             end
         end
@@ -103,9 +94,9 @@ function scanPeripherals()
 end
 
 function savePeripheralsToFile()
-    local file = fs.open("peripherals.dat", "w")  -- Open the file to write
+    local file = fs.open("peripherals.dat", "w")
     if file then
-        file.write(textutils.serialize(peripheralsTable))  -- Serialize the table to string
+        file.write(textutils.serialize(peripheralsTable))
         file.close()
         print("Peripherals saved to peripherals.dat")
     else
@@ -115,13 +106,9 @@ end
 
 -- Main program logic
 function runInstaller()
-    -- Create the /GUI/ directory if it doesn't exist
    createDirectory("/GUI/")
-    -- Download the program from GitHub
     downloadFile(github_url, "startup.lua") 
-    -- Install Basalt
     installBasalt()
-    -- Move Basalt into /GUI/
     moveBasaltToGUI("/GUI/")
     scanPeripherals()
     savePeripheralsToFile()
@@ -129,5 +116,4 @@ function runInstaller()
     print("Peripherals found:", #peripheralsTable)
 end
 
--- Run the installer
 runInstaller()
