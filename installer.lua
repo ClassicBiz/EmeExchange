@@ -93,17 +93,6 @@ function scanPeripherals()
     file.close()
 end
 
-function savePeripheralsToFile()
-    local file = fs.open("peripherals.dat", "w")
-    if file then
-        file.write(textutils.serialize(peripheralsTable))
-        file.close()
-        print("Peripherals saved to peripherals.dat")
-    else
-        print("Failed to save peripherals to file")
-    end
-end
-
 -- Main program logic
 function runInstaller()
    createDirectory("/GUI/")
@@ -111,7 +100,6 @@ function runInstaller()
     installBasalt()
     moveBasaltToGUI("/GUI/")
     scanPeripherals()
-    savePeripheralsToFile()
     print("Installation complete.")
     print("Peripherals found:", #peripheralsTable)
 end
