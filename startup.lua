@@ -223,7 +223,7 @@ local function handleExchange(emeraldsToExchange, totalCost, currentEmeralds)
     local totalEmeralds = checkEmeraldChest()
 	termThread:start(safeEventLoop)
     emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
-
+    parallel.waitForAny(terminateHandler,function()
     if emeraldsToExchange <= currentEmeralds then
         local success, totalReceived = processPayment(totalCost)
 		if success == true then
@@ -250,16 +250,17 @@ local function handleExchange(emeraldsToExchange, totalCost, currentEmeralds)
         local totalEmeralds = checkEmeraldChest()
     	emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
         emeraldInput:setValue("")
-        sleep(4)
-		outputTextBox:editLine(1," ")
-   		outputTextBox:editLine(2," ")
-    	outputTextBox:editLine(3," ")
-    	outputTextBox:editLine(4," ")
-		outputTextBox:editLine(5," ")
-    else
-        outputTextBox:editLine(4, "Not enough emeralds available.")
-		outputTextBox:editLine(5,"Current: " .. currentEmeralds)
-	end
+        os.sleep(4)
+		    outputTextBox:editLine(1," ")
+   		    outputTextBox:editLine(2," ")
+    	    outputTextBox:editLine(3," ")
+    	    outputTextBox:editLine(4," ")
+		    outputTextBox:editLine(5," ")
+        else
+            outputTextBox:editLine(4, "Not enough emeralds available.")
+		    outputTextBox:editLine(5,"Current: " .. currentEmeralds)
+	    end
+    end)
 end
 
 -- Setup button click action
