@@ -57,53 +57,49 @@ function moveBasaltToGUI(dir)
 end
 
 function scanPeripherals()
-    -- Get a list of all peripheral names
     local peripheralNames = peripheral.getNames()
+    local peripheralsTable = {} -- Store peripherals
 
-    -- Print all the peripheral names for debugging
-    print("Peripheral names found: ")
-    for _, name in ipairs(peripheralNames) do
-        print(name)
-    end
-
-    -- Labels for different peripheral types
     local labels = {
-        ["minecraft:chest"] = {"emerald", "cash"},  -- Label list for chests
-        ["minecraft:dispenser"] = {"dispenser"}    -- Label list for dispensers
+        ["minecraft:chest"] = {"emerald", "cash"},
+        ["minecraft:dispenser"] = {"dispenser"}
     }
-    
-    -- Label index for assigning labels to peripherals
+
     local labelIndex = {
-        ["minecraft:chest"] = 1,   -- To track which label to assign to chests
-        ["minecraft:dispenser"] = 1  -- To track which label to assign to dispensers
+        ["minecraft:chest"] = 1,
+        ["minecraft:dispenser"] = 1
     }
 
     for _, name in ipairs(peripheralNames) do
-        -- Get the type of each peripheral
         local peripheralType = peripheral.getType(name)
-
-        -- Print the peripheral type for debugging
-        print("Checking peripheral: " .. name .. " of type " .. peripheralType)
-
-        -- Check if the peripheral is of type "minecraft:chest" or "minecraft:dispenser"
+        
         if peripheralType == "minecraft:chest" or peripheralType == "minecraft:dispenser" then
-            -- Get the label for the peripheral type, adjusting based on the type
             local currentLabelIndex = labelIndex[peripheralType]
             local label = labels[peripheralType][currentLabelIndex]
 
-            -- Ensure the label exists before proceeding
             if label then
-                -- Store the peripheral name, type, and label in the peripheralsTable
-                table.insert(peripheralsTable, {name = name, type = peripheralType, label = label})
-                print("Found " .. peripheralType .. ": " .. name .. " labeled as " .. label)
+                -- Extract only the number from the peripheral name
+                local number = tonumber(name:match("_(%d+)$")) or name
+                
+                -- Store peripheral data
+                table.insert(peripheralsTable, {
+                    type = peripheralType,
+                    name = number, -- Store number instead of full name
+                    label = label
+                })
 
-                -- Increment the label index for the next peripheral of the same type
+                print("Assigned " .. peripheralType .. " " .. name .. " as " .. label)
+
+                -- Increment label index
                 labelIndex[peripheralType] = currentLabelIndex + 1
-            else
-                print("No label available for " .. peripheralType .. ": " .. name)
             end
         end
     end
+
+    -- Save to file for persistence
+    local file = fs.open("peripherals.json", "w")
+    file.write(textutils.serialize(peripheralsTable))
+    file.close()
 end
 
 function savePeripheralsToFile()
