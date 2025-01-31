@@ -67,26 +67,28 @@ function scanPeripherals()
 
     for _, name in ipairs(peripheralNames) do
         local peripheralType = peripheral.getType(name)
-        
-        if peripheralType == "minecraft:chest" or peripheralType == "minecraft:dispenser" then
-            local currentLabelIndex = labelIndex[peripheralType]
-            local label = labels[peripheralType][currentLabelIndex]
+        if name == "bottom" then
+			print("skip")
+		else
+        	if peripheralType == "minecraft:chest" or peripheralType == "minecraft:dispenser" then
+            	local currentLabelIndex = labelIndex[peripheralType]
+            	local label = labels[peripheralType][currentLabelIndex]
 
-            if label then
+            	if label then
                 -- Extract only the number from the peripheral name
-                local number = tonumber(name:match("_(%d+)$")) or name
-                table.insert(peripheralsTable, {
-                    type = peripheralType,
-                    name = number,
-                    label = label
-                })
+                	local number = tonumber(name:match("_(%d+)$")) or name
+                	table.insert(peripheralsTable, {
+                    	type = peripheralType,
+                    	name = number,
+                    	label = label
+                	})
 
-                print("Assigned " .. peripheralType .. " " .. name .. " as " .. label)
-                labelIndex[peripheralType] = currentLabelIndex + 1
-            end
-        end
-    end
-
+                	print("Assigned " .. peripheralType .. " " .. name .. " as " .. label)
+                	labelIndex[peripheralType] = currentLabelIndex + 1
+            	end
+        	end
+    	end
+ 	end
     -- Save to file for persistence
     local file = fs.open("peripherals.json", "w")
     file.write(textutils.serialize(peripheralsTable))
