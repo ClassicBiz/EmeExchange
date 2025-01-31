@@ -1,42 +1,31 @@
 local basalt = require("/GUI/basalt")
 
 -- Peripherals setup
-local function loadPeripherals()
-    local file = fs.open("peripherals.dat", "r")
-    if not file then
-        print("Error: Unable to load peripherals data.")
-        return nil
-    end
-    local peripheralsData = file.readAll() 
-    file.close() 
-    local peripheralsTable = textutils.unserialize(peripheralsData)
-    return peripheralsTable
-end
+	if fs.exists("peripherals.json") then
+    	local file = fs.open("peripherals.json", "r")
+    	local peripheralsTable = textutils.unserialize(file.readAll())
+    	file.close()
+    	for _, peripheralData in ipairs(peripheralsTable) do
+        	if peripheralData.label == "emerald" then
+            	emeraldJ = peripheralData.name
+        	elseif peripheralData.label == "cash" then
+            	cashJ = peripheralData.name
+        	elseif peripheralData.label == "dispenser" then
+            	dispenserJ = peripheralData.name
+        	end
+    	end
+	end
 
-local peripheralsTable = loadPeripherals()
-if not peripheralsTable then
-    return 
-end
-
--- Loop through the peripherals table and wrap the peripherals dynamically
-for _, peripheralData in ipairs(peripheralsTable) do
-    local peripheralType = peripheralData.type
-    local peripheralName = peripheralData.name
-    local label = peripheralData.label
-
-    -- Check for the peripheral type and wrap accordingly
-    if peripheralType == "minecraft:chest" then
-        if label == "emerald" then
-            emeraldChest = peripheral.wrap(peripheralName)
-        elseif label == "cash" then
-            cashChest = peripheral.wrap(peripheralName)
-        end
-    elseif peripheralType == "minecraft:dispenser" and label == "dispenser" then
-        emeraldDispenser = peripheral.wrap(peripheralName)
-    end
-end
-
+-- Wrap peripherals using dynamic numbers
+local emerald = tonumber(emeraldJ)
+local cash = tonumber(cashJ)
+local dispenser = tonumber(dispenserJ)	
+local emeraldChest = peripheral.wrap("minecraft:chest_"..emerald) -- Adjust the peripheral name
+local emeraldDispenser = peripheral.wrap("minecraft:dispenser_"..dispenser)
+local cashChest = peripheral.wrap("minecraft:chest_"..cash)
 local emeraldValue = 10
+
+
 local function terminateHandler()
     while true do
         local event = os.pullEventRaw()
@@ -68,6 +57,8 @@ end
 -- GUI Setup
 local mainFrame = basalt.createFrame()
     :setBackground(colors.white)
+
+local termThread = mainFrame:addThread()
 	
 local mainLogo = mainFrame:addTextfield()
 	:setBackground(colors.white)
@@ -130,7 +121,8 @@ local paymentValues = {
     ["jackseconomy:hundred_dollar_bill"] = 100,
 	["jackseconomy:thousand_dollar_bill"] = 1000,
 }
-local termThread = mainFrame:addThread()
+
+
 -- Function to check for cash in the dispenser
 local function checkDispenserCash()
     local totalCash = 0
@@ -146,14 +138,13 @@ local function checkDispenserCash()
     return totalCash
 end
 
--- Function to move cash to the cash chest
 local function moveCashToChest()
+	targetChest = peripheral.getName(cashChest)
     for slot, item in pairs(emeraldDispenser.list()) do
         emeraldDispenser.pushItems(peripheral.getName(cashChest), slot, item.count)
     end
 end
 
--- Function to dispense change
 local function dispenseChange(changeDue)
     local changeDispensed = {}
 
@@ -176,7 +167,6 @@ local function dispenseChange(changeDue)
     return changeDispensed
 end
 
--- Function to check the emerald chest
 local function checkEmeraldChest()
     local items = emeraldChest.list()
     local totalEmeralds = 0
@@ -186,11 +176,9 @@ local function checkEmeraldChest()
             totalEmeralds = totalEmeralds + item.count
         end
     end
-
     return totalEmeralds
 end
 
--- Function to process payment
 local function processPayment(totalCost)
     local totalReceived = 0
     local isPaid = false
@@ -202,19 +190,16 @@ local function processPayment(totalCost)
             isPaid = true
             outputTextBox:editLine(2,"Payment received: $" .. totalReceived)
 			outputTextBox:editLine(3, "  ")
-            moveCashToChest() -- Move cash to the chest
-
-            return totalReceived
         else
             outputTextBox:editLine(2, "Total received: $" .. totalReceived .. ". ")
 			outputTextBox:editLine(3, "Please add cash into the dispenser")
-            sleep(0.1) -- Pause for a bit to allow for more payment
+            sleep(0.1)
         end
 		end)
     end
+	return isPaid, totalReceived
 end
 
--- Function to move emeralds from the chest to the dispenser, using the correct slot
 local function moveEmeraldsToDispenser(emeraldsToExchange)
     local remainingEmeralds = emeraldsToExchange
 
@@ -240,23 +225,23 @@ local function handleExchange(emeraldsToExchange, totalCost, currentEmeralds)
     emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
 
     if emeraldsToExchange <= currentEmeralds then
-        -- Process payment and wait for the exact amount
-        local totalReceived = processPayment(totalCost)
-		if totalRecived ~= nil then
-        	local changeDue = totalReceived - totalCost
+        local success, totalReceived = processPayment(totalCost)
+		if success == true then
+			moveCashToChest()
+        	changeDue = totalReceived - totalCost
 		else
+			outputTextBox:editLine(3,"Payment Failed" .. tostring(success))
 			return
 		end
         if changeDue > 0 then
             local dispensed = dispenseChange(changeDue)
-            outputTextBox:editLine(3, "Change dispensed: $" .. changeDue)
+            outputTextBox:editLine(3, "Change dispensed: $" ..changeDue)
         else
             outputTextBox:editLine(3, "No change due.")
         end
 
         -- Move emeralds from multiple slots to the dispenser
         local emeraldsMoved = moveEmeraldsToDispenser(emeraldsToExchange)
-
         if emeraldsMoved == emeraldsToExchange then
             outputTextBox:editLine(4, "Exchanged " .. emeraldsToExchange .. " emerald(s).")
         else
@@ -299,15 +284,14 @@ local function exchangeButtonClick()
             	function() handleExchange(emeraldsToExchange, totalCost, currentEmeralds) end,
             	function() basalt.autoUpdate() end -- Keep GUI responsive
         	)
-
     	else
         	outputTextBox:editLine(4,"Invalid input. Please enter a valid number.")
     	end
 	end
 end
+
 local totalEmeralds = checkEmeraldChest()
-	
-    emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
-	termThread:start(safeEventLoop)
-	exchangeButton:onClick(exchangeButtonClick)
-	basalt.autoUpdate()
+emeraldCheckbox:editLine(1, "Available E$:" .. totalEmeralds):setForeground(colors.lime)
+termThread:start(safeEventLoop)
+exchangeButton:onClick(exchangeButtonClick)
+basalt.autoUpdate()
